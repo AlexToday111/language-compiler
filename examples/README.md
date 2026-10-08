@@ -13,6 +13,22 @@ The Bash script tokenizes all seven programs. For one file (Bash is optional):
 java -jar target/language-compiler-0.1.0-SNAPSHOT.jar examples/valid/02_nested_collections.d
 ```
 
+Validate syntax with the separate parser CLI:
+
+```sh
+java -cp target/classes io.github.alextoday111.projectd.parser.ParserMain examples/valid/01_calculator.d
+```
+
+It prints `Parsing successful. Syntax is valid.` and exits with code `0`.
+To see a syntax failure, use the preserved legacy calculator:
+
+```sh
+java -cp target/classes io.github.alextoday111.projectd.parser.ParserMain examples/valid/02_calculator.d
+```
+
+It reports `Syntax error at 13:32`, an expected expression and actual `NEWLINE`
+on stderr, then exits with code `1`. These commands validate syntax only.
+
 ## Advanced Programs
 
 | File | Purpose and constructs | Intended output values |
@@ -43,8 +59,8 @@ values, not a verified console transcript.
 | [03_nested_values.d](valid/03_nested_values.d) | An array of arrays inside a tuple, passed to a callback. | `7` |
 
 These files are retained unchanged. The original `02_calculator.d` places a
-newline after `=>`; this is a lexer input, not confirmed syntax under the
-current EBNF's continuation rules. The advanced replacement keeps its arrow
+newline after `=>`; the parser rejects this lexer input at line 13, column 32
+under the current EBNF's continuation rules. The advanced replacement keeps its arrow
 expressions on one line or uses an explicit function body.
 
 ## Validation Status
@@ -52,8 +68,10 @@ expressions on one line or uses an explicit function body.
 - **Lexer validation:** available now. JUnit compares complete token streams,
   lexemes, typed values, positions and EOF against committed fixtures for all
   seven files. Regression tests also assert numeric/access/range edge cases.
-- **Parser validation:** unavailable until Parser is implemented. The advanced
-  programs have been manually reviewed against the grammar draft, not parsed.
+- **Parser validation:** all four advanced programs, `01_simple.d` and
+  `03_nested_values.d` pass. Integration tests explicitly verify rejection of
+  the unchanged original `02_calculator.d` at `13:32` (`NEWLINE`). These are
+  checks against the grammar draft and its provisional conventions.
 - **Runtime validation:** unavailable until Interpreter is implemented. Every
   output above is an intended result, not an observed execution result.
 

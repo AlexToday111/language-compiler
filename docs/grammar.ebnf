@@ -46,9 +46,10 @@ assignment = reference, ASSIGN, expression ;
 (* Control flow: teacher pp. 2-3. *)
 if_statement = KW_IF, expression, KW_THEN, body,
                [ KW_ELSE, body ], KW_END ;
-(* N2 UNRESOLVED: the source gives Body but no terminator for short if.
-   Preserve that rule; do not silently substitute a one-statement body. *)
-short_if_statement = KW_IF, expression, FAT_ARROW, body ;
+(* N2 PROVISIONAL PROJECT CONVENTION: exactly one statement after =>,
+   possibly a complete compound statement. No extra end and no newline
+   between => and its statement. The teacher's Body boundary is ambiguous. *)
+short_if_statement = KW_IF, expression, FAT_ARROW, statement ;
 while_loop = KW_WHILE, expression, loop_body ;
 for_loop = for_header, loop_body ;
 for_header = KW_FOR, [ IDENT, KW_IN ], expression, [ RANGE, expression ] ;

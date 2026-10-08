@@ -1,46 +1,6 @@
 <h1 align="center">Project D</h1>
 
-A Java interpreter project for a dynamically typed language, developed for
-Compiler Construction. Only the lexer is implemented.
-
-<h2 align="center">Architecture</h2>
-
-```text
-Source -> Lexer -> Tokens -> Parser -> AST -> Interpreter
-```
-
-Parser + AST will use handwritten recursive descent; the interpreter will
-execute the AST directly, with semantic checks and runtime support.
-
-<h2 align="center">Structure</h2>
-
-```text
-pom.xml
-.github/workflows/ci.yml
-docs/
-  grammar.ebnf
-  grammar-notes.md
-  language-spec/                 Team PDFs
-src/main/java/io/github/alextoday111/projectd/
-  lexer/                         Lexer, tokens, diagnostics, Main
-  parser/ ast/ semantic/         Planned (.gitkeep only)
-  interpreter/ runtime/          Planned (.gitkeep only)
-src/test/java/io/github/alextoday111/projectd/lexer/
-  LexerTest.java
-src/lexer/                       Scripts, README, original JAR
-src/codegen/                     Reserved (.gitkeep only)
-examples/valid/                  Three original and four advanced examples
-```
-
-<h2 align="center">Language Specification</h2>
-
-- [EBNF grammar](docs/grammar.ebnf)
-- [Assumptions, source conflicts, and open questions](docs/grammar-notes.md)
-- [Team introduction](docs/language-spec/krutaya_komanda%28intro%29.pdf)
-- [Lexer presentation](docs/language-spec/krutaya_komanda%28lexer%29.pdf)
-
-The teacher's **Project D.pdf** is the primary source. It is not redistributed
-here. Team slides contain conflicting syntax; see the grammar notes.
+A Compiler Construction project for a dynamically typed language. Java 11+.
 
 <h2 align="center">Build and Run</h2>
 
@@ -48,56 +8,58 @@ Requires JDK 11+ and Maven 3.6.3+. Run from the repository root:
 
 ```sh
 mvn clean verify
+# Print tokens:
 java -jar target/language-compiler-0.1.0-SNAPSHOT.jar examples/valid/01_simple.d
+# Validate syntax:
+java -cp target/classes io.github.alextoday111.projectd.parser.ParserMain examples/valid/01_calculator.d
 ```
 
-The lexer prints tokens, not the program's execution result. For all examples:
+Parser success: `Parsing successful. Syntax is valid.` Exit codes: `0` success,
+`1` lexical/syntax error, `2` usage error, `3` file error.
+See [lexer instructions](src/lexer/README.md) and [examples](examples/README.md).
 
-```sh
-bash src/lexer/run_demo.sh
+<h2 align="center">Architecture</h2>
+
+```text
+Source -> Lexer -> List<Token> -> Parser -> Syntax validation
 ```
 
-<h2 align="center">Testing</h2>
+The handwritten recursive descent parser exposes `Parser(List<Token>)` and
+`void parse()`. It validates complete input through EOF and stops at the first
+error with `ParseException` (line, column, expected and actual token).
+It supports statements, precedence tiers, functions, chained references,
+nested arrays and tuples. It builds no AST/CST and performs no semantic checks
+or execution. AST, semantic analysis, interpreter and runtime are planned.
 
-```sh
-mvn test
+<h2 align="center">Structure and Specification</h2>
+
+```text
+src/main/java/io/github/alextoday111/projectd/
+  lexer/                        Lexer, tokens, diagnostics, Main
+  parser/                       Parser, ParseException, ParserMain
+  ast/ semantic/                Planned
+  interpreter/ runtime/         Planned
+src/test/java/io/github/alextoday111/projectd/
+  lexer/ parser/                Unit and integration tests
+src/lexer/                      Lexer scripts, README, historical JAR
+examples/valid/                 Seven preserved examples
+docs/                           Grammar, notes, team PDFs
 ```
 
-JUnit 5 runs 60 tests, including exact streams for all seven examples and
-tuple-access/value/position regressions. CI runs `mvn clean verify` on Temurin 17, compiling for Java 11,
-for pushes and pull requests to `main`. See [lexer instructions](src/lexer/README.md).
+- [EBNF grammar](docs/grammar.ebnf)
+- [Grammar decisions and parser limitations](docs/grammar-notes.md)
+- [Team introduction](docs/language-spec/krutaya_komanda%28intro%29.pdf)
+- [Lexer presentation](docs/language-spec/krutaya_komanda%28lexer%29.pdf)
 
-<h2 align="center">Advanced Language Examples</h2>
+The teacher's **Project D.pdf** is the primary source and is not redistributed.
+A1/A3/A4/A8 remain provisional; short `if ... =>` takes one statement under
+project convention N2. Prefixes cannot directly target references; calls and
+explicit parameter lists are nonempty; value tuples are nonempty.
 
-| File | Purpose / lexer coverage |
-|---|---|
-| [01_calculator.d](examples/valid/01_calculator.d) | Four arithmetic callbacks, nested tuple fields, array arguments. |
-| [02_nested_collections.d](examples/valid/02_nested_collections.d) | Three-level tuples, arrays of tuples, mixed indexing, `a.1.2.3`. |
-| [03_bubble_sort.d](examples/valid/03_bubble_sort.d) | Nested range loops, full conditions, swaps and indexed assignments. |
-| [04_higher_order.d](examples/valid/04_higher_order.d) | Callbacks with arrays/tuples, repeated calls and returned function values. |
+<h2 align="center">Validation</h2>
 
-Tokenize any file by passing its path:
-
-```sh
-java -jar target/language-compiler-0.1.0-SNAPSHOT.jar examples/valid/02_nested_collections.d
-```
-
-See [examples and intended results](examples/README.md). Lexer validation is
-available now; Parser and runtime validation require future implementations.
-Range inclusivity is an explicit assumption, not a verified language rule.
-
-<h2 align="center">Current Status</h2>
-
-| Component | Status |
-|---|---|
-| Lexer | Implemented |
-| Parser | Planned |
-| AST | Planned |
-| Semantic Analysis | Planned |
-| Interpreter | Planned |
-| Runtime | Planned |
-
-<h2 align="center">Roadmap</h2>
-
-Lexer -> Parser -> AST -> Interpreter -> runtime and semantic checks -> integration tests.
-Resolve the grammar's open questions before implementing the parser.
+`mvn clean verify` runs 236 JUnit tests: 60 lexer and 176 parser tests.
+CI runs the same command on Temurin 17, compiling for Java 11.
+Six examples pass syntax validation. The original `02_calculator.d` remains
+Lexer-only: its newline after `=>` is rejected at **13:32**. Runtime results
+are unverified.
