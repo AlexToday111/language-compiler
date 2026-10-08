@@ -206,7 +206,84 @@ public final class Parser {
             consume(RPAREN, "RPAREN");
             return;
         }
+        if (check(KW_FUNC)) {
+            parseFunctionLiteral();
+            return;
+        }
+        if (check(LBRACKET)) {
+            parseArray();
+            return;
+        }
+        if (check(LBRACE)) {
+            parseTuple();
+            return;
+        }
         throw error("expression (literal, function, collection or parenthesized expression)");
+    }
+
+    private void parseFunctionLiteral() {
+        consume(KW_FUNC, "KW_FUNC");
+        if (match(LPAREN)) {
+            consume(IDENT, "IDENT (nonempty parameter list)");
+            while (match(COMMA)) {
+                consume(IDENT, "IDENT (parameter name)");
+            }
+            consume(RPAREN, "RPAREN");
+        }
+        if (match(KW_IS)) {
+            parseStatementSequence(true, KW_END);
+            consume(KW_END, "KW_END");
+        } else {
+            consume(FAT_ARROW, "KW_IS or FAT_ARROW (function body)");
+            parseExpression();
+        }
+    }
+
+    private void parseArray() {
+        consume(LBRACKET, "LBRACKET");
+        skipLineBreaks();
+        if (match(RBRACKET)) {
+            return;
+        }
+        parseExpression();
+        while (true) {
+            skipLineBreaks();
+            if (!match(COMMA)) {
+                break;
+            }
+            skipLineBreaks();
+            parseExpression();
+        }
+        consume(RBRACKET, "COMMA or RBRACKET");
+    }
+
+    private void parseTuple() {
+        consume(LBRACE, "LBRACE");
+        skipLineBreaks();
+        parseTupleElement();
+        while (true) {
+            skipLineBreaks();
+            if (!match(COMMA)) {
+                break;
+            }
+            skipLineBreaks();
+            parseTupleElement();
+        }
+        consume(RBRACE, "COMMA or RBRACE");
+    }
+
+    private void parseTupleElement() {
+        if (check(IDENT) && lookahead(1).getType() == ASSIGN) {
+            advance();
+            advance();
+        }
+        parseExpression();
+    }
+
+    private void skipLineBreaks() {
+        while (match(NEWLINE)) {
+            // A8: only aggregate delimiters and commas permit layout newlines.
+        }
     }
 
     private void parseTypeIndicator() {
