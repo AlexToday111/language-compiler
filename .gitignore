@@ -1,0 +1,28 @@
+# Java build outputs
+*.class
+*.jar
+!src/lexer/project-d-lexer.jar
+out/
+build/
+target/
+bin/
+.gradle/
+
+# IDE and editor settings
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+*~
+
+# Temporary files and operating system metadata
+*.tmp
+*.temp
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
