@@ -44,7 +44,7 @@ not additional teacher-approved lexical requirements.
 | ID | Rule / pages | Issue and treatment |
 |---|---|---|
 | A1 | `Program`, `Body`, pp. 1-2 | Prose describes semicolon/newline separators; the printed rules make semicolons optional and omit newlines. **Assumption:** require at least one separator between statements; allow blank lines and leading/trailing separators. Header-to-body boundaries remain structural, so `then print x end` is possible. Bodies remain nonempty. |
-| N2 | `IfShort`, `Body`, pp. 2-3 | `if Expression => Body` has no closing token and `Body` can contain multiple statements. The following statement may belong to the condition or its enclosing body. The EBNF retains `body`; no single-statement or greedy-body policy is asserted. Nested short conditionals also make `else` ownership ambiguous. **Unresolved; not an unambiguous recursive descent rule yet.** |
+| N2 | `IfShort`, `Body`, pp. 2-3 | `if Expression => Body` has no closing token and `Body` can contain multiple statements. **Provisional project convention:** `if Expression => Statement` takes exactly one statement, including a complete compound statement, with no layout separator after `=>`. Following separator-delimited statements belong to the enclosing sequence. Short if has no own `else` or `end`; these belong to a surrounding full conditional/block. This narrows the ambiguous source and is not teacher-approved. |
 | A3 | `Factor`, p. 3 | The printed repetition makes `+`/`-` optional, admitting adjacent terms such as `1 2`. This conflicts with the infix description and operator table (p. 6). **Assumption:** an explicit additive operator is required. |
 | A4 | `Expression`, `Factor`, `Term`, pp. 3, 6 | Repetition defines tiers but not evaluation associativity or short-circuit behavior. **Assumption:** repeated binary operators fold left within each tier. Short-circuit behavior remains unresolved. `or`, `and`, and `xor` have equal precedence in the printed grammar; conventional `and`-before-`or` precedence is not imported. |
 | N5 | `Unary`, `Primary`, pp. 3-4 | Prefix `+`, `-`, `not` applies only to `Primary`, which excludes `Reference`. Thus `-x` / `not x` and repeated prefixes do not follow the printed grammar, while `-(x)` / `not (x)` do. `is` applies only to a reference. The p. 6 operator prose does not clearly justify these restrictions. **Preserved pending clarification**, not broadened to arbitrary operands. |
@@ -117,7 +117,7 @@ suffixes. `if` alternatives share a prefix and can be distinguished by `then`
 or `=>` after the condition. A named tuple element requires lookahead for
 `IDENT ASSIGN`; otherwise its value starts an expression. `for IDENT in`
 similarly requires lookahead because a collection expression may start with
-`IDENT`. These observations do not resolve N2.
+`IDENT`. N2 now uses the explicitly provisional one-statement convention.
 
 `NEWLINE` and `SEMICOLON` end statements under A1, including a bare `return`.
 `else`, `end`, and `EOF` delimit enclosing bodies; the future parser must
@@ -168,8 +168,43 @@ or program execution, and are not a substitute for specification conformance.
 
 ## Before Parser Implementation
 
-Confirm A1/A3/A4/A8; resolve short-if boundaries (N2), unary operands (N5),
+Confirm A1/A3/A4/A8 and the provisional short-if convention (N2) with the teacher;
+resolve unary operands (N5),
 zero-argument functions/call statements (N6), and empty tuples (N8). Settle
 assignability and the lexical gaps above. Obtain redistribution permission
 before adding the teacher PDF. Parser, AST, semantic analysis, interpreter,
 and runtime remain planned and contain no implementation.
+
+## Syntax Parser Conventions
+
+The syntax-only parser will enforce the EBNF draft without building trees or
+evaluating expressions. A1/A3/A4/A8 remain provisional. N5 prefixes still
+apply only to a primary: `-(x)` is allowed, `-x` is not. N6 keeps nonempty
+parentheses for parameters and call arguments; a function may omit its whole
+parameter group. N8 keeps value tuples nonempty, while `x is {}` remains a
+type test. Calls are expression/reference suffixes, not standalone statements.
+
+Under N2, `if condition => print 1; print 2` has one conditional statement
+followed by a separate print. Multiple guarded statements require the full
+`if ... then ... end` form. A single compound statement after `=>` owns its
+normal closing `end`. An `else` can attach only to the nearest still-open full
+conditional, not to a short conditional. Newlines immediately after `=>` are
+not accepted, for either arrow functions or short conditionals.
+
+Bodies remain nonempty. No arbitrary newline continuation is introduced in
+calls, parameters, indexing, grouped expressions, or infix expressions. A8
+permits layout newlines only around aggregate elements and commas. The parser
+must require statement separators and a single explicit EOF at the end of
+the supplied token stream. Null, empty, truncated, and early-EOF streams must
+produce `ParseException` rather than index/null failures.
+
+The original `02_calculator.d` has a newline after `=>` (line 13). It remains
+unchanged and Lexer-only. `01_simple.d`, `03_nested_values.d`, and the four
+advanced inputs will be checked as Parser-valid examples. No grammar rule is
+expanded to accommodate the original calculator.
+
+Undefined names, duplicate declarations, `return` outside functions, `exit`
+outside loops, invalid assignment targets, index types/ranges, and operation
+type restrictions are deliberately outside syntax validation. For example,
+`f(x) := value` and `array[1.5] := value` are syntactically admitted by the
+existing reference grammar; later stages decide their semantics.
