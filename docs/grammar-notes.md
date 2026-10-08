@@ -13,9 +13,9 @@ Secondary sources are [the team introduction](language-spec/krutaya_komanda%28in
 existing Java sources/tests. The teacher specification takes precedence.
 These PDFs were read in full; the teacher pages were also visually inspected.
 
-[grammar.ebnf](grammar.ebnf) is a syntax draft, not a parser implementation.
-The following assumptions are provisional and require confirmation before
-Parser + AST work. Unresolved source rules are preserved rather than silently
+[grammar.ebnf](grammar.ebnf) is the syntax draft implemented by the syntax-only
+parser. The following assumptions remain provisional and require teacher
+confirmation. Unresolved source rules are preserved rather than silently
 expanded. Numeric tuple access now uses the explicit lexer convention below;
 other unresolved source rules have not been silently changed.
 
@@ -79,13 +79,13 @@ decimal scanning: `a.1[2.5]` contains `REAL(2.5)`.
 
 This is intentionally a small lexical convention, not recognition of a full
 `Reference`. Even a malformed prefix such as `.1.2` is split into positional
-tokens; the future parser must reject an invalid root. `a.12.345` means two
+tokens; the parser rejects an invalid root. `a.12.345` means two
 positions, never a real-valued field. Index positivity, missing tuple fields,
-noninteger array indices, and nonsensical sequences such as `1...2` must be
-checked by Parser/semantic/runtime stages. The lexer still emits tokens for
+noninteger array indices belong to semantic/runtime checks; nonsensical syntax
+such as `1...2` is rejected by Parser. The lexer still emits tokens for
 them. Integer overflow and the existing string/identifier limitations remain.
 
-The parser should consume `DOT (IDENT | INTEGER)` as in `tuple_field` and must
+The parser consumes `DOT (IDENT | INTEGER)` as in `tuple_field` and does
 not merge these position tokens into reals. A parser-assisted alternative
 could retain finer-grained digit/dot tokens and decide decimal grouping in
 expression context, but that would change the token contract and move numeric
@@ -95,8 +95,8 @@ All four [advanced examples](../examples/README.md) were manually compared
 with the EBNF rules. They use full conditions, one-based accesses, nonempty
 call/parameter lists, and single-line arrow expressions. Their multiline
 aggregates use the already documented A8 assumption. The EBNF productions
-need no change for numeric tuple access. This review is not implemented Parser
-validation. Ascending ranges in Bubble Sort and higher-order processing assume
+need no change for numeric tuple access. All four also pass parser integration
+tests under this draft. Ascending ranges in Bubble Sort and higher-order processing assume
 inclusive endpoints; this runtime assumption remains unconfirmed by the PDF.
 
 ## Precedence and Recursive Descent Guidance
@@ -120,8 +120,8 @@ similarly requires lookahead because a collection expression may start with
 `IDENT`. N2 now uses the explicitly provisional one-statement convention.
 
 `NEWLINE` and `SEMICOLON` end statements under A1, including a bare `return`.
-`else`, `end`, and `EOF` delimit enclosing bodies; the future parser must
-manage their ownership explicitly. A8 consumes newlines as layout only at
+`else`, `end`, and `EOF` delimit enclosing bodies; the parser manages
+their ownership explicitly. A8 consumes newlines as layout only at
 the aggregate positions named above. Semicolons never become aggregate layout.
 
 ## Semantic Constraints Outside EBNF
@@ -163,21 +163,21 @@ clarification. They must not be invented by the syntax grammar.
 
 The lexer presentation (slides 2-7) mostly matches teacher spellings and
 describes the existing scanner. Neither deck overrides the teacher PDF.
-The three retained examples demonstrate tokenization, not completed parsing
-or program execution, and are not a substitute for specification conformance.
+The retained examples demonstrate tokenization; two also pass syntax checks.
+They are not a substitute for specification conformance or runtime validation.
 
-## Before Parser Implementation
+## Open Specification Questions
 
 Confirm A1/A3/A4/A8 and the provisional short-if convention (N2) with the teacher;
 resolve unary operands (N5),
 zero-argument functions/call statements (N6), and empty tuples (N8). Settle
 assignability and the lexical gaps above. Obtain redistribution permission
-before adding the teacher PDF. Parser, AST, semantic analysis, interpreter,
-and runtime remain planned and contain no implementation.
+before adding the teacher PDF. The syntax-only parser implements the current
+draft; AST, semantic analysis, interpreter and runtime remain planned.
 
 ## Syntax Parser Conventions
 
-The syntax-only parser will enforce the EBNF draft without building trees or
+The syntax-only parser enforces the EBNF draft without building trees or
 evaluating expressions. A1/A3/A4/A8 remain provisional. N5 prefixes still
 apply only to a primary: `-(x)` is allowed, `-x` is not. N6 keeps nonempty
 parentheses for parameters and call arguments; a function may omit its whole
@@ -194,13 +194,13 @@ not accepted, for either arrow functions or short conditionals.
 Bodies remain nonempty. No arbitrary newline continuation is introduced in
 calls, parameters, indexing, grouped expressions, or infix expressions. A8
 permits layout newlines only around aggregate elements and commas. The parser
-must require statement separators and a single explicit EOF at the end of
-the supplied token stream. Null, empty, truncated, and early-EOF streams must
+requires statement separators and a single explicit EOF at the end of
+the supplied token stream. Null, empty, truncated, and early-EOF streams
 produce `ParseException` rather than index/null failures.
 
 The original `02_calculator.d` has a newline after `=>` (line 13). It remains
 unchanged and Lexer-only. `01_simple.d`, `03_nested_values.d`, and the four
-advanced inputs will be checked as Parser-valid examples. No grammar rule is
+advanced inputs are checked as Parser-valid examples. No grammar rule is
 expanded to accommodate the original calculator.
 
 Undefined names, duplicate declarations, `return` outside functions, `exit`
@@ -208,3 +208,24 @@ outside loops, invalid assignment targets, index types/ranges, and operation
 type restrictions are deliberately outside syntax validation. For example,
 `f(x) := value` and `array[1.5] := value` are syntactically admitted by the
 existing reference grammar; later stages decide their semantics.
+
+## Parser API, Diagnostics and Limits
+
+`new Parser(tokens).parse()` returns `void` on success and throws
+`ParseException` on the first error. The constructor snapshots the list and
+validates its token/EOF contract. Each `parse()` starts from the beginning.
+No lexer calls, token rewrites, trees, symbol tables or evaluation occur inside
+Parser. The separate `ParserMain` reads UTF-8 source and invokes Lexer first;
+the executable JAR still launches the original lexer CLI.
+
+Exceptions expose the error kind, expected syntax, actual token, line and
+column. Syntax locations come directly from the offending lexer token,
+including EOF for missing closers. Invalid streams without a usable token
+use a synthetic EOF at `1:1` or the preceding valid token for their location.
+There is no error recovery or multiple-error collection.
+
+Flat operator, suffix and statement sequences are iterative. Nested blocks,
+expressions and collections use Java recursion, so extreme nesting is limited
+by the JVM call stack. Parsing is not thread-safe. With no AST or evaluation,
+tests verify accepted syntax and tier boundaries, not computed associativity,
+short-circuit behavior or runtime results. Lexical gaps L1/L2/L3 are unchanged.
