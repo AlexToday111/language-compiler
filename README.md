@@ -6,7 +6,7 @@ Compiler Construction. Only the lexer is implemented.
 <h2 align="center">Architecture</h2>
 
 ```text
-Source ? Lexer ? Tokens ? Parser ? AST ? Interpreter
+Source -> Lexer -> Tokens -> Parser -> AST -> Interpreter
 ```
 
 Parser + AST will use handwritten recursive descent; the interpreter will
@@ -29,7 +29,7 @@ src/test/java/io/github/alextoday111/projectd/lexer/
   LexerTest.java
 src/lexer/                       Scripts, README, original JAR
 src/codegen/                     Reserved (.gitkeep only)
-examples/valid/                  Three existing lexer examples
+examples/valid/                  Three original and four advanced examples
 ```
 
 <h2 align="center">Language Specification</h2>
@@ -63,9 +63,28 @@ bash src/lexer/run_demo.sh
 mvn test
 ```
 
-JUnit 5 runs seven existing lexer scenarios (five token sequences and two
-lexical errors). CI runs `mvn clean verify` on Temurin 17, compiling for Java 11,
+JUnit 5 runs 60 tests, including exact streams for all seven examples and
+tuple-access/value/position regressions. CI runs `mvn clean verify` on Temurin 17, compiling for Java 11,
 for pushes and pull requests to `main`. See [lexer instructions](src/lexer/README.md).
+
+<h2 align="center">Advanced Language Examples</h2>
+
+| File | Purpose / lexer coverage |
+|---|---|
+| [01_calculator.d](examples/valid/01_calculator.d) | Four arithmetic callbacks, nested tuple fields, array arguments. |
+| [02_nested_collections.d](examples/valid/02_nested_collections.d) | Three-level tuples, arrays of tuples, mixed indexing, `a.1.2.3`. |
+| [03_bubble_sort.d](examples/valid/03_bubble_sort.d) | Nested range loops, full conditions, swaps and indexed assignments. |
+| [04_higher_order.d](examples/valid/04_higher_order.d) | Callbacks with arrays/tuples, repeated calls and returned function values. |
+
+Tokenize any file by passing its path:
+
+```sh
+java -jar target/language-compiler-0.1.0-SNAPSHOT.jar examples/valid/02_nested_collections.d
+```
+
+See [examples and intended results](examples/README.md). Lexer validation is
+available now; Parser and runtime validation require future implementations.
+Range inclusivity is an explicit assumption, not a verified language rule.
 
 <h2 align="center">Current Status</h2>
 
@@ -80,5 +99,5 @@ for pushes and pull requests to `main`. See [lexer instructions](src/lexer/READM
 
 <h2 align="center">Roadmap</h2>
 
-Lexer ? Parser ? AST ? Interpreter ? runtime and semantic checks ? integration tests.
+Lexer -> Parser -> AST -> Interpreter -> runtime and semantic checks -> integration tests.
 Resolve the grammar's open questions before implementing the parser.

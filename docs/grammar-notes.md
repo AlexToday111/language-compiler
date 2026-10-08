@@ -16,7 +16,8 @@ These PDFs were read in full; the teacher pages were also visually inspected.
 [grammar.ebnf](grammar.ebnf) is a syntax draft, not a parser implementation.
 The following assumptions are provisional and require confirmation before
 Parser + AST work. Unresolved source rules are preserved rather than silently
-expanded. The existing lexer has not been changed to resolve any of them.
+expanded. Numeric tuple access now uses the explicit lexer convention below;
+other unresolved source rules have not been silently changed.
 
 ## Notation and Token Interface
 
@@ -54,7 +55,49 @@ not additional teacher-approved lexical requirements.
 | N9 | `Assignment`, `Reference`, p. 4 | A reference can contain calls and is also admitted as an assignment target. Whether `f(x) := y` is valid, or whether a call result can be indexed/assigned through, is unspecified. Keep the syntax and defer assignability rules to clarification/semantic checks. |
 | L1 | Identifiers, pp. 1, 4-5 | No character set, keyword boundary rule, case rule, or length limit is given. The current lexer accepts `_` and Java `Character.isLetter` initially, then `_` / `Character.isLetterOrDigit`, with exact lowercase keyword matching. This is an implementation description, not a formal teacher requirement. |
 | L2 | Strings, p. 4 | The source permits arbitrary characters in matching single/double quotes but does not define escapes or multiline strings. The lexer rejects raw line breaks, interprets several backslash escapes, and drops the backslash for unknown escapes. **Potential mismatch; unchanged.** |
-| L3 | Numeric and dot tokens, pp. 4-5 | Decimal digit sequences and real fractions are specified, but limits/overflow and adjacent dots are not. The lexer uses `Long` / `Double`; `t.2` is `IDENT DOT INTEGER`, but `t.2.3` becomes `IDENT DOT REAL(2.3)` rather than two positional accesses. Likewise `1..3` works, while `1...3` is not a defined source construct. **Potential chained positional-access conflict; unchanged.** |
+| L3 | Numeric and dot tokens, pp. 4-5 | Decimal digit sequences and real fractions are specified, but limits/overflow and conflicting adjacent dots are not. The lexer uses `Long` / `Double`. Numeric access chains now use the explicit convention below: `t.2.3` is `IDENT DOT INTEGER DOT INTEGER`. `1..3` remains a range; `1...3` has no defined source meaning. This convention is a project decision, not a quoted teacher rule. |
+
+## Numeric Tuple Access Convention
+
+The teacher's `Reference` rule (p. 4) permits repeated `.IntegerLiteral`
+suffixes, while the real-literal definition (pp. 4-5) permits `digits.digits`.
+Previously `scanNumber()` greedily consumed that pattern in every context,
+so `a.1.2.3` incorrectly contained `REAL(1.2)`.
+
+**Project convention:** when the last emitted token is `DOT`, the next digit
+sequence is an `INTEGER` tuple position. It does not consume a following
+decimal point. Thus `a.1.2.3` becomes three positional suffixes. In every other
+context the original decimal-literal rule remains unchanged. `RANGE` is still
+recognized before `DOT`; `a.1..10` becomes `IDENT DOT INTEGER RANGE INTEGER`.
+The same convention works after named fields, indexing, and calls.
+
+Horizontal whitespace does not emit a token, so `a . 1 . 2` follows the same
+rule. `NEWLINE` and `SEMICOLON` emit tokens and end this immediate context:
+`a.\n1.2` emits `IDENT DOT NEWLINE REAL`, not a continued tuple reference.
+Array brackets, commas, assignments, and operators similarly restore ordinary
+decimal scanning: `a.1[2.5]` contains `REAL(2.5)`.
+
+This is intentionally a small lexical convention, not recognition of a full
+`Reference`. Even a malformed prefix such as `.1.2` is split into positional
+tokens; the future parser must reject an invalid root. `a.12.345` means two
+positions, never a real-valued field. Index positivity, missing tuple fields,
+noninteger array indices, and nonsensical sequences such as `1...2` must be
+checked by Parser/semantic/runtime stages. The lexer still emits tokens for
+them. Integer overflow and the existing string/identifier limitations remain.
+
+The parser should consume `DOT (IDENT | INTEGER)` as in `tuple_field` and must
+not merge these position tokens into reals. A parser-assisted alternative
+could retain finer-grained digit/dot tokens and decide decimal grouping in
+expression context, but that would change the token contract and move numeric
+value construction across stages. It is not needed for this focused fix.
+
+All four [advanced examples](../examples/README.md) were manually compared
+with the EBNF rules. They use full conditions, one-based accesses, nonempty
+call/parameter lists, and single-line arrow expressions. Their multiline
+aggregates use the already documented A8 assumption. The EBNF productions
+need no change for numeric tuple access. This review is not implemented Parser
+validation. Ascending ranges in Bubble Sort and higher-order processing assume
+inclusive endpoints; this runtime assumption remains unconfirmed by the PDF.
 
 ## Precedence and Recursive Descent Guidance
 
