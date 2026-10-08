@@ -178,7 +178,10 @@ public final class Lexer {
             advance();
         }
 
-        boolean isReal = peek() == '.' && isDigit(peekNext());
+        // A number after DOT is a tuple position, not a decimal literal.
+        boolean tuplePosition = !tokens.isEmpty()
+                && tokens.get(tokens.size() - 1).getType() == TokenType.DOT;
+        boolean isReal = !tuplePosition && peek() == '.' && isDigit(peekNext());
         if (isReal) {
             advance();
             while (isDigit(peek())) {
