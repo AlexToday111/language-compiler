@@ -1,3 +1,5 @@
+package io.github.alextoday111.projectd.lexer;
+
 public enum TokenType {
     // Keywords
     KW_VAR,

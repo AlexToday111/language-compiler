@@ -1,0 +1,117 @@
+(* Project D syntax draft, based on the six-page teacher specification
+   "Project D.pdf" (called "Project D(1).pdf" in the task).
+   Read grammar-notes.md before implementing a parser: this is not an
+   approved resolution of the source's ambiguities.
+
+   Notation: rule = expression ;
+   Commas mean sequence; | means choice; ( ) groups;
+   [ ] means optional; { } means zero or more repetitions.
+   Comments use parenthesis-asterisk delimiters. Punctuation uses token
+   names, so EBNF brackets/braces are never source-language delimiters.
+   Lowercase names are syntax rules. UPPERCASE names are atomic lexical
+   terminals from TokenType.java, not undefined syntax rules.
+
+   Lexical terminal interface (definitions belong to the lexer):
+   IDENT: identifier; INTEGER: decimal digits; REAL: digits '.' digits;
+   STRING: single- or double-quoted string. The teacher does not fully
+   define identifier characters or string escapes; see notes L1-L3.
+   NEWLINE: line break; EOF: end of input.
+   KW_*: exact keyword spelling after removing KW_ and lowercasing.
+   ASSIGN :=   FAT_ARROW =>   RANGE ..
+   PLUS +   MINUS -   STAR *   SLASH /
+   EQUAL =   NOT_EQUAL /=   LESS <   LESS_EQUAL <=
+   GREATER >   GREATER_EQUAL >=
+   LPAREN (   RPAREN )   LBRACKET [   RBRACKET ]
+   LBRACE {   RBRACE }   COMMA ,   DOT .   SEMICOLON ;
+   Spaces and // comments are discarded by the existing lexer.
+*)
+
+(* Program and nonempty blocks: teacher pp. 1-2.
+   A1 ASSUMPTION: require a separator between consecutive statements;
+   permit leading/trailing separators and blank lines. *)
+program = { separator }, [ statement_sequence ], { separator }, EOF ;
+statement_sequence = statement, { separators, statement } ;
+body = { separator }, statement_sequence, { separator } ;
+separator = NEWLINE | SEMICOLON ;
+separators = separator, { separator } ;
+
+statement = declaration | assignment | if_statement | short_if_statement
+          | while_loop | for_loop | infinite_loop | exit_statement
+          | return_statement | print_statement ;
+
+declaration = KW_VAR, variable_definition, { COMMA, variable_definition } ;
+variable_definition = IDENT, [ ASSIGN, expression ] ;
+assignment = reference, ASSIGN, expression ;
+
+(* Control flow: teacher pp. 2-3. *)
+if_statement = KW_IF, expression, KW_THEN, body,
+               [ KW_ELSE, body ], KW_END ;
+(* N2 UNRESOLVED: the source gives Body but no terminator for short if.
+   Preserve that rule; do not silently substitute a one-statement body. *)
+short_if_statement = KW_IF, expression, FAT_ARROW, body ;
+while_loop = KW_WHILE, expression, loop_body ;
+for_loop = for_header, loop_body ;
+for_header = KW_FOR, [ IDENT, KW_IN ], expression, [ RANGE, expression ] ;
+infinite_loop = loop_body ;
+loop_body = KW_LOOP, body, KW_END ;
+exit_statement = KW_EXIT ;
+return_statement = KW_RETURN, [ expression ] ;
+print_statement = KW_PRINT, expression, { COMMA, expression } ;
+
+(* Expression tiers: teacher p. 3, operator semantics p. 6.
+   All three logical operators share ONE tier in the source.
+   Repeated binary operators use the provisional left-fold convention A4. *)
+expression = relation, { logical_operator, relation } ;
+logical_operator = KW_OR | KW_AND | KW_XOR ;
+relation = additive_expression, [ relational_operator, additive_expression ] ;
+relational_operator = LESS | LESS_EQUAL | GREATER | GREATER_EQUAL
+                    | EQUAL | NOT_EQUAL ;
+(* A3 ASSUMPTION: the source's optional additive operator is a typo;
+   require an explicit + or - between terms. No implicit multiplication. *)
+additive_expression = multiplicative_expression,
+                      { additive_operator, multiplicative_expression } ;
+additive_operator = PLUS | MINUS ;
+multiplicative_expression = unary_expression,
+                            { multiplicative_operator, unary_expression } ;
+multiplicative_operator = STAR | SLASH ;
+(* N5: faithfully preserve the source's restriction of prefixes to
+   Primary. Bare -x / not x and repeated prefixes need clarification. *)
+unary_expression = reference, [ KW_IS, type_indicator ]
+                 | [ unary_operator ], primary ;
+unary_operator = PLUS | MINUS | KW_NOT ;
+primary = literal | function_literal | LPAREN, expression, RPAREN ;
+type_indicator = KW_INT | KW_REAL | KW_BOOL | KW_STRING | KW_NONE
+               | LBRACKET, RBRACKET | LBRACE, RBRACE | KW_FUNC ;
+
+(* Functions: teacher p. 4. No fun/lambda syntax from the intro slides.
+   N6: parameters/call arguments are nonempty when parentheses appear,
+   as printed in the teacher productions. *)
+function_literal = KW_FUNC, [ parameter_declarations ], function_body ;
+parameter_declarations = LPAREN, IDENT, { COMMA, IDENT }, RPAREN ;
+function_body = KW_IS, body, KW_END | FAT_ARROW, expression ;
+
+(* Eliminate Reference's direct left recursion without expanding which
+   roots can be referenced: teacher p. 4. Calls/indices/fields can chain. *)
+reference = IDENT, { reference_suffix } ;
+reference_suffix = array_index | function_call | tuple_field ;
+array_index = LBRACKET, expression, RBRACKET ;
+function_call = LPAREN, expression, { COMMA, expression }, RPAREN ;
+tuple_field = DOT, ( IDENT | INTEGER ) ;
+
+(* Literal and aggregate rules: teacher pp. 4-5. Prefer the second,
+   complete Literal definition (N7). Signs belong to unary expressions. *)
+literal = INTEGER | REAL | STRING | boolean_literal | KW_NONE
+        | array_literal | tuple_literal ;
+boolean_literal = KW_TRUE | KW_FALSE ;
+(* A8 ASSUMPTION: NEWLINE is layout immediately inside aggregate
+   delimiters and around commas, rather than a statement separator. *)
+array_literal = LBRACKET, line_breaks,
+                [ expression, { aggregate_comma, expression } ],
+                line_breaks, RBRACKET ;
+(* N8: require at least one tuple element as printed on p. 5;
+   {} is confirmed only as a type indicator, not as a value literal. *)
+tuple_literal = LBRACE, line_breaks, tuple_element,
+                { aggregate_comma, tuple_element }, line_breaks, RBRACE ;
+tuple_element = [ IDENT, ASSIGN ], expression ;
+aggregate_comma = line_breaks, COMMA, line_breaks ;
+line_breaks = { NEWLINE } ;

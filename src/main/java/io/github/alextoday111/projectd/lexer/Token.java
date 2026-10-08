@@ -1,3 +1,5 @@
+package io.github.alextoday111.projectd.lexer;
+
 public final class Token {
     private final TokenType type;
     private final String lexeme;

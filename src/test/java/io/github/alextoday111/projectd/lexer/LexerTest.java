@@ -1,9 +1,13 @@
-import java.util.List;
+package io.github.alextoday111.projectd.lexer;
+
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public final class LexerTest {
-    private static int checks;
-
-    public static void main(String[] args) {
+    @Test
+    void tokenizesVariableDeclaration() {
         expectTypes(
                 "var total := 12.5",
                 TokenType.KW_VAR,
@@ -12,7 +16,10 @@ public final class LexerTest {
                 TokenType.REAL,
                 TokenType.EOF
         );
+    }
 
+    @Test
+    void tokenizesFunctionLiteral() {
         expectTypes(
                 "func(a, b) => a + b",
                 TokenType.KW_FUNC,
@@ -27,7 +34,10 @@ public final class LexerTest {
                 TokenType.IDENT,
                 TokenType.EOF
         );
+    }
 
+    @Test
+    void tokenizesRangeLoopAndComment() {
         expectTypes(
                 "for i in 1..3 loop // comment\nprint i\nend",
                 TokenType.KW_FOR,
@@ -44,7 +54,10 @@ public final class LexerTest {
                 TokenType.KW_END,
                 TokenType.EOF
         );
+    }
 
+    @Test
+    void tokenizesComparisonAndLogic() {
         expectTypes(
                 "x <= 10 and x /= 5",
                 TokenType.IDENT,
@@ -56,7 +69,10 @@ public final class LexerTest {
                 TokenType.INTEGER,
                 TokenType.EOF
         );
+    }
 
+    @Test
+    void tokenizesQuotedStrings() {
         expectTypes(
                 "[\"lexer\", 'demo']",
                 TokenType.LBRACKET,
@@ -66,34 +82,22 @@ public final class LexerTest {
                 TokenType.RBRACKET,
                 TokenType.EOF
         );
+    }
 
-        expectLexicalError("var x := @");
-        expectLexicalError("print \"unfinished");
+    @Test
+    void rejectsUnknownCharacter() {
+        assertThrows(LexicalException.class, () -> new Lexer("var x := @").scanTokens());
+    }
 
-        System.out.println("All lexer tests passed: " + checks);
+    @Test
+    void rejectsUnterminatedString() {
+        assertThrows(LexicalException.class, () -> new Lexer("print \"unfinished").scanTokens());
     }
 
     private static void expectTypes(String source, TokenType... expected) {
-        List<Token> actual = new Lexer(source).scanTokens();
-        if (actual.size() != expected.length) {
-            throw new AssertionError("Expected " + expected.length + " tokens but got " + actual.size());
-        }
-        for (int i = 0; i < expected.length; i++) {
-            if (actual.get(i).getType() != expected[i]) {
-                throw new AssertionError(
-                        "Token " + i + ": expected " + expected[i] + " but got " + actual.get(i).getType()
-                );
-            }
-            checks++;
-        }
-    }
-
-    private static void expectLexicalError(String source) {
-        try {
-            new Lexer(source).scanTokens();
-            throw new AssertionError("Expected a lexical error for: " + source);
-        } catch (LexicalException expected) {
-            checks++;
-        }
+        TokenType[] actual = new Lexer(source).scanTokens().stream()
+                .map(Token::getType)
+                .toArray(TokenType[]::new);
+        assertArrayEquals(expected, actual);
     }
 }
