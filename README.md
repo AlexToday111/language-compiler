@@ -1,47 +1,21 @@
-# Compiler Construction
+﻿<h1 align="center">Compiler Construction</h1>
 
-## Project Overview
+A university compiler project for Project D. Currently implements a Java lexer.
 
-A university project for developing a compiler for Project D. The current
-implementation provides lexical analysis in Java. Parsing, AST construction,
-semantic analysis, and code generation are planned; programs cannot yet be
-compiled or executed by this project.
-
-## Project Structure
+<h2 align="center">Structure</h2>
 
 ```text
-.
-|-- README.md
-|-- .gitignore
-|-- docs/
-|   |-- language-spec/
-|   |   `-- Project_D_Dynamic_Language (2).pptx
-|   `-- architecture/.gitkeep
-|-- src/
-|   |-- lexer/
-|   |   |-- src/                       # Existing Java sources; entry point: Main
-|   |   |-- tests/LexerTest.java        # Existing lexer tests
-|   |   |-- examples/                  # Three existing Project D programs
-|   |   |-- run_demo.sh
-|   |   |-- run_tests.sh
-|   |   |-- project-d-lexer.jar         # Original prebuilt artifact
-|   |   |-- README.md
-|   |   |-- START_HERE_RU.txt
-|   |   `-- DEMO_SCRIPT_RU.txt
-|   |-- parser/.gitkeep
-|   |-- ast/.gitkeep
-|   |-- semantic/.gitkeep
-|   `-- codegen/.gitkeep
-|-- tests/.gitkeep
-`-- examples/.gitkeep
+docs/           Language specification and architecture documentation
+src/lexer/      Existing lexer, tests, and examples
+src/parser/     Syntax analysis (planned)
+src/ast/        Abstract syntax tree (planned)
+src/semantic/   Semantic analysis (planned)
+src/codegen/    Code generation (planned)
+tests/          Future compiler tests
+examples/       Future compiler examples
 ```
 
-The original lexer package retains its internal layout so its scripts and
-relative paths continue to work. Root-level `tests/` and `examples/` reserve
-space for future compiler tests and programs. `docs/architecture/` is reserved
-for architecture documentation. Planned directories contain only `.gitkeep`.
-
-## Current Implementation Status
+<h2 align="center">Status</h2>
 
 | Component | Status |
 |---|---|
@@ -51,49 +25,24 @@ for architecture documentation. Planned directories contain only `.gitkeep`.
 | Semantic Analyzer | Planned |
 | Code Generator | Planned |
 
-## Language Specification
+<h2 align="center">Language Specification</h2>
 
-The original [Project D presentation](docs/language-spec/Project_D_Dynamic_Language%20%282%29.pptx)
-is the primary reference for language rules, syntax, and grammar until a
-separate formal specification is available.
+[Project D presentation](docs/language-spec/Project_D_Dynamic_Language%20%282%29.pptx) — the primary reference for language rules.
 
-## Getting Started
+<h2 align="center">Quick Start</h2>
 
-Use JDK 11 or newer, with `java` and `javac` on `PATH`. The lexer uses the Java
-standard library and requires no external dependencies. Compilation, the
-existing tests, and all three examples were verified with JDK 17.
-
-From the repository root (PowerShell, Bash, or a compatible terminal):
+Requires JDK 11+. Run from the repository root:
 
 ```sh
-javac -encoding UTF-8 -d src/lexer/out src/lexer/src/*.java src/lexer/tests/*.java
-java -cp src/lexer/out LexerTest
-java -cp src/lexer/out Main src/lexer/examples/01_simple.d
+cd src/lexer
+javac -encoding UTF-8 -d out src/*.java tests/*.java
+java -cp out LexerTest
+java -cp out Main examples/01_simple.d
 ```
 
-Pass one or more source file paths to `Main` to print their tokens. With no
-arguments, it tokenizes its existing built-in example.
+Expected: `All lexer tests passed: 45`, followed by the example's token list.
+See [lexer instructions](src/lexer/README.md) for Bash and JAR commands.
 
-On macOS/Linux or with Bash installed, the original scripts can also be used:
+<h2 align="center">Roadmap</h2>
 
-```sh
-bash src/lexer/run_tests.sh
-bash src/lexer/run_demo.sh
-```
-
-The original prebuilt JAR is preserved and can run with Java 11 or newer:
-
-```sh
-java -jar src/lexer/project-d-lexer.jar src/lexer/examples/01_simple.d
-```
-
-For the original lexer documentation, see [src/lexer/README.md](src/lexer/README.md).
-
-## Development Roadmap
-
-1. Implement syntax analysis in `src/parser/` using the language specification.
-2. Define the abstract syntax tree in `src/ast/` and integrate it with the parser.
-3. Add semantic analysis and type checking in `src/semantic/`.
-4. Implement code generation in `src/codegen/`.
-5. Add compiler tests, example programs, and architecture documentation as
-   these components are developed.
+Parser → AST → semantic analysis → code generation.

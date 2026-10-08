@@ -1,72 +1,32 @@
-# Project D Lexer (Java, hand-written)
+﻿# Project D Lexer
 
-Это минимальная рабочая реализация лексера для защиты первой оцениваемой части проекта.
-Лексер получает исходный текст языка D и выводит плоский список токенов.
+Java lexer that prints tokens from Project D source files. Requires JDK 11+.
+Run these commands from `src/lexer/`.
 
-## Что реализовано
+## Build and Check
 
-- ключевые слова Project D;
-- идентификаторы;
-- целые и вещественные литералы;
-- строки в одинарных и двойных кавычках;
-- операторы `:=`, `=>`, `..`, `/=`, `<=`, `>=` и односимвольные операторы;
-- круглые, квадратные и фигурные скобки, запятая, точка и точка с запятой;
-- комментарии `//`;
-- номера строк и столбцов;
-- понятные ошибки для неизвестного символа и незакрытой строки.
-
-Перевод строки выводится как `NEWLINE`, потому что в Project D новая строка может
-разделять statements так же, как `;`. Пробелы, табуляции и комментарии пропускаются.
-
-## Быстрый запуск на macOS/Linux
-
-Нужен установленный JDK 11 или новее.
-
-```bash
-chmod +x run_demo.sh
-./run_demo.sh
-```
-
-Скрипт компилирует проект и последовательно запускает три примера из презентации.
-
-Запуск одного примера:
-
-```bash
-./run_demo.sh examples/02_calculator.d
-```
-
-Автоматическая проверка лексера:
-
-```bash
-chmod +x run_tests.sh
-./run_tests.sh
-```
-
-## Запасной запуск готового JAR
-
-Если перед защитой нет времени разбираться со сборкой, нужен только Java 11 или новее:
-
-```bash
-java -jar project-d-lexer.jar examples/01_simple.d
-java -jar project-d-lexer.jar examples/02_calculator.d
-java -jar project-d-lexer.jar examples/03_nested_values.d
-```
-
-## Запуск без скрипта
-
-```bash
-mkdir -p out
-javac -encoding UTF-8 -d out src/*.java
+```sh
+javac -encoding UTF-8 -d out src/*.java tests/*.java
+java -cp out LexerTest
 java -cp out Main examples/01_simple.d
 ```
 
-## Что показать на live demo
+Expected: `All lexer tests passed: 45` and a token list for the example.
+Pass another file path to `Main` to tokenize it.
 
-1. Открыть `src/Lexer.java` и кратко показать цикл `scanTokens()`.
-2. Показать таблицу `KEYWORDS` и обработку двухсимвольных операторов.
-3. Запустить `./run_demo.sh examples/01_simple.d`.
-4. Показать, что `var total := 12.5` превращается в `KW_VAR`, `IDENT`, `ASSIGN`, `REAL`.
-5. Запустить примеры `02_calculator.d` и `03_nested_values.d` со слайдов 6 и 7.
+## Bash Scripts
 
-Лексер не строит AST и не выполняет программу. Это задачи следующих этапов:
-парсера, семантического анализа и интерпретатора.
+Run the existing tests and all three examples:
+
+```sh
+bash run_tests.sh
+bash run_demo.sh
+```
+
+## Prebuilt JAR
+
+Requires only Java 11+:
+
+```sh
+java -jar project-d-lexer.jar examples/01_simple.d
+```
