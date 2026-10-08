@@ -1,0 +1,9 @@
+KW_VAR	var	-	1:1
+IDENT	total	-	1:5
+ASSIGN	:=	-	1:11
+REAL	12.5	Double:12.5	1:14
+NEWLINE	\n	-	1:18
+KW_PRINT	print	-	2:1
+IDENT	total	-	2:7
+NEWLINE	\n	-	2:12
+EOF		-	3:1
