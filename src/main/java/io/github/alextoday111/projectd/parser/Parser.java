@@ -41,8 +41,207 @@ public final class Parser {
     /** Parses from the beginning on each call and requires complete input. */
     public void parse() {
         current = 0;
-        skipSeparators();
+        parseStatementSequence(false, EOF);
         consume(EOF, "EOF");
+    }
+
+    private void parseStatementSequence(boolean nonempty, TokenType... endings) {
+        skipSeparators();
+        if (isAtEnd() || checkAny(endings)) {
+            if (nonempty) {
+                throw error("statement (nonempty body)");
+            }
+            return;
+        }
+        parseStatement();
+        while (!isAtEnd() && !checkAny(endings)) {
+            if (!match(NEWLINE, SEMICOLON)) {
+                throw error("NEWLINE or SEMICOLON between statements");
+            }
+            skipSeparators();
+            if (isAtEnd() || checkAny(endings)) {
+                return;
+            }
+            parseStatement();
+        }
+    }
+
+    private void parseStatement() {
+        switch (peek().getType()) {
+            case KW_VAR:
+                advance();
+                parseVariableDefinition();
+                while (match(COMMA)) {
+                    parseVariableDefinition();
+                }
+                return;
+            case IDENT:
+                parseReference();
+                consume(ASSIGN, "ASSIGN (:=)");
+                parseExpression();
+                return;
+            case KW_IF:
+                advance();
+                parseIf();
+                return;
+            case KW_WHILE:
+                advance();
+                parseExpression();
+                parseLoopBody();
+                return;
+            case KW_FOR:
+                advance();
+                if (check(IDENT) && lookahead(1).getType() == KW_IN) {
+                    advance();
+                    advance();
+                }
+                parseExpression();
+                if (match(RANGE)) {
+                    parseExpression();
+                }
+                parseLoopBody();
+                return;
+            case KW_LOOP:
+                parseLoopBody();
+                return;
+            case KW_EXIT:
+                advance();
+                return;
+            case KW_RETURN:
+                advance();
+                if (!checkAny(NEWLINE, SEMICOLON, KW_ELSE, KW_END, EOF)) {
+                    parseExpression();
+                }
+                return;
+            case KW_PRINT:
+                advance();
+                parseExpression();
+                while (match(COMMA)) {
+                    parseExpression();
+                }
+                return;
+            default:
+                throw error("statement");
+        }
+    }
+
+    private void parseVariableDefinition() {
+        consume(IDENT, "IDENT (variable name)");
+        if (match(ASSIGN)) {
+            parseExpression();
+        }
+    }
+
+    private void parseIf() {
+        parseExpression();
+        if (match(FAT_ARROW)) {
+            // N2: exactly one statement, possibly an entire nested construct.
+            parseStatement();
+            return;
+        }
+        consume(KW_THEN, "KW_THEN or FAT_ARROW");
+        parseStatementSequence(true, KW_ELSE, KW_END);
+        if (match(KW_ELSE)) {
+            parseStatementSequence(true, KW_END);
+        }
+        consume(KW_END, "KW_END");
+    }
+
+    private void parseLoopBody() {
+        consume(KW_LOOP, "KW_LOOP");
+        parseStatementSequence(true, KW_END);
+        consume(KW_END, "KW_END");
+    }
+
+    private void parseExpression() {
+        parseRelation();
+        while (match(KW_OR, KW_AND, KW_XOR)) {
+            parseRelation();
+        }
+    }
+
+    private void parseRelation() {
+        parseAdditive();
+        if (match(LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, EQUAL, NOT_EQUAL)) {
+            parseAdditive();
+            if (checkAny(LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, EQUAL, NOT_EQUAL)) {
+                throw error("at most one comparison operator per relation");
+            }
+        }
+    }
+
+    private void parseAdditive() {
+        parseMultiplicative();
+        while (match(PLUS, MINUS)) {
+            parseMultiplicative();
+        }
+    }
+
+    private void parseMultiplicative() {
+        parseUnary();
+        while (match(STAR, SLASH)) {
+            parseUnary();
+        }
+    }
+
+    private void parseUnary() {
+        if (check(IDENT)) {
+            parseReference();
+            if (match(KW_IS)) {
+                parseTypeIndicator();
+            }
+        } else {
+            // N5: prefixes apply to Primary, not directly to Reference.
+            match(PLUS, MINUS, KW_NOT);
+            parsePrimary();
+        }
+    }
+
+    private void parsePrimary() {
+        if (match(INTEGER, REAL, STRING, KW_TRUE, KW_FALSE, KW_NONE)) {
+            return;
+        }
+        if (match(LPAREN)) {
+            parseExpression();
+            consume(RPAREN, "RPAREN");
+            return;
+        }
+        throw error("expression (literal, function, collection or parenthesized expression)");
+    }
+
+    private void parseTypeIndicator() {
+        if (match(KW_INT, KW_REAL, KW_BOOL, KW_STRING, KW_NONE, KW_FUNC)) {
+            return;
+        }
+        if (match(LBRACKET)) {
+            consume(RBRACKET, "RBRACKET in array type indicator");
+        } else if (match(LBRACE)) {
+            consume(RBRACE, "RBRACE in tuple type indicator");
+        } else {
+            throw error("type indicator (int, real, bool, string, none, [], {}, func)");
+        }
+    }
+
+    private void parseReference() {
+        consume(IDENT, "IDENT (reference root)");
+        while (true) {
+            if (match(LBRACKET)) {
+                parseExpression();
+                consume(RBRACKET, "RBRACKET");
+            } else if (match(LPAREN)) {
+                parseExpression();
+                while (match(COMMA)) {
+                    parseExpression();
+                }
+                consume(RPAREN, "RPAREN");
+            } else if (match(DOT)) {
+                if (!match(IDENT, INTEGER)) {
+                    throw error("IDENT or INTEGER after DOT");
+                }
+            } else {
+                return;
+            }
+        }
     }
 
     private void skipSeparators() {
