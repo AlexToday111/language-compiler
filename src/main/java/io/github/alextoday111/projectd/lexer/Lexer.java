@@ -1,3 +1,5 @@
+package io.github.alextoday111.projectd.lexer;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

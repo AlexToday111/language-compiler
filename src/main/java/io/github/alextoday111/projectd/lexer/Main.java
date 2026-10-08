@@ -1,3 +1,5 @@
+package io.github.alextoday111.projectd.lexer;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
