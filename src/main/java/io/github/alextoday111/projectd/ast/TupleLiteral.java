@@ -1,0 +1,21 @@
+package io.github.alextoday111.projectd.ast;
+
+import java.util.List;
+import java.util.Objects;
+
+public final class TupleLiteral implements Expression {
+    private final List<TupleElement> elements;
+
+    public TupleLiteral(List<TupleElement> elements) {
+        this.elements = List.copyOf(elements);
+    }
+
+    public List<TupleElement> getElements() {
+        return elements;
+    }
+
+    @Override
+    public List<? extends AstNode> getChildren() {
+        return elements;
+    }
+}

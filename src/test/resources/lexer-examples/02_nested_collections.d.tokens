@@ -1,5 +1,5 @@
-NEWLINE	\n	-	1:57
-NEWLINE	\n	-	2:61
+NEWLINE	\n	-	1:1
+NEWLINE	\n	-	2:1
 KW_VAR	var	-	3:1
 IDENT	a	-	3:5
 ASSIGN	:=	-	3:7

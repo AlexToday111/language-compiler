@@ -3,17 +3,19 @@ package io.github.alextoday111.projectd.parser;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.github.alextoday111.projectd.ast.*;
+
 import io.github.alextoday111.projectd.lexer.Token;
 import io.github.alextoday111.projectd.lexer.TokenType;
 
 import static io.github.alextoday111.projectd.lexer.TokenType.*;
 
-/** Validates syntax only: no tree construction, name resolution, or evaluation. */
+
 public final class Parser {
     private final List<Token> tokens;
     private int current;
 
-    /** Takes a snapshot and rejects malformed streams with ParseException. */
+
     public Parser(List<Token> tokens) {
         Token fallback = new Token(EOF, "", null, 1, 1);
         if (tokens == null || tokens.isEmpty()) {
@@ -38,292 +40,313 @@ public final class Parser {
         this.tokens = List.copyOf(snapshot);
     }
 
-    /** Parses from the beginning on each call and requires complete input. */
-    public void parse() {
+    public Program parse() {
         current = 0;
-        parseStatementSequence(false, EOF);
+        Block body = parseStatementSequence(false, EOF);
         consume(EOF, "EOF");
+        return new Program(body.getStatements());
     }
 
-    private void parseStatementSequence(boolean nonempty, TokenType... endings) {
+    private Block parseStatementSequence(boolean nonempty, TokenType... endings) {
+        List<Statement> statements = new ArrayList<>();
         skipSeparators();
         if (isAtEnd() || checkAny(endings)) {
             if (nonempty) {
                 throw error("statement (nonempty body)");
             }
-            return;
+            return new Block(statements);
         }
-        parseStatement();
+        statements.add(parseStatement());
         while (!isAtEnd() && !checkAny(endings)) {
             if (!match(NEWLINE, SEMICOLON)) {
                 throw error("NEWLINE or SEMICOLON between statements");
             }
             skipSeparators();
             if (isAtEnd() || checkAny(endings)) {
-                return;
+                break;
             }
-            parseStatement();
+            statements.add(parseStatement());
         }
+        return new Block(statements);
     }
 
-    private void parseStatement() {
+    private Statement parseStatement() {
         switch (peek().getType()) {
             case KW_VAR:
                 advance();
-                parseVariableDefinition();
+                List<VariableDeclaration> declarations = new ArrayList<>();
+                declarations.add(parseVariableDefinition());
                 while (match(COMMA)) {
-                    parseVariableDefinition();
+                    declarations.add(parseVariableDefinition());
                 }
-                return;
+                return declarations.size() == 1 ? declarations.get(0)
+                        : new VariableDeclarationGroup(declarations);
             case IDENT:
-                parseReference();
+                Reference target = parseReference();
                 consume(ASSIGN, "ASSIGN (:=)");
-                parseExpression();
-                return;
+                return new Assignment(target, parseExpression());
             case KW_IF:
                 advance();
-                parseIf();
-                return;
+                return parseIf();
             case KW_WHILE:
                 advance();
-                parseExpression();
-                parseLoopBody();
-                return;
+                Expression condition = parseExpression();
+                return new WhileLoop(condition, parseLoopBody());
             case KW_FOR:
                 advance();
+                Identifier variable = null;
                 if (check(IDENT) && lookahead(1).getType() == KW_IN) {
-                    advance();
+                    variable = new Identifier(advance().getLexeme());
                     advance();
                 }
-                parseExpression();
-                if (match(RANGE)) {
-                    parseExpression();
-                }
-                parseLoopBody();
-                return;
+                Expression iterable = parseExpression();
+                Expression rangeEnd = match(RANGE) ? parseExpression() : null;
+                return new ForLoop(variable, iterable, rangeEnd, parseLoopBody());
             case KW_LOOP:
-                parseLoopBody();
-                return;
+                return new InfiniteLoop(parseLoopBody());
             case KW_EXIT:
                 advance();
-                return;
+                return new ExitStatement();
             case KW_RETURN:
                 advance();
-                if (!checkAny(NEWLINE, SEMICOLON, KW_ELSE, KW_END, EOF)) {
-                    parseExpression();
-                }
-                return;
+                Expression value = checkAny(NEWLINE, SEMICOLON, KW_ELSE, KW_END, EOF)
+                        ? null : parseExpression();
+                return new ReturnStatement(value);
             case KW_PRINT:
                 advance();
-                parseExpression();
+                List<Expression> expressions = new ArrayList<>();
+                expressions.add(parseExpression());
                 while (match(COMMA)) {
-                    parseExpression();
+                    expressions.add(parseExpression());
                 }
-                return;
+                return new PrintStatement(expressions);
             default:
                 throw error("statement");
         }
     }
 
-    private void parseVariableDefinition() {
-        consume(IDENT, "IDENT (variable name)");
-        if (match(ASSIGN)) {
-            parseExpression();
-        }
+    private VariableDeclaration parseVariableDefinition() {
+        Identifier identifier = new Identifier(consume(IDENT, "IDENT (variable name)").getLexeme());
+        Expression initializer = match(ASSIGN) ? parseExpression() : null;
+        return new VariableDeclaration(identifier, initializer);
     }
 
-    private void parseIf() {
-        parseExpression();
+    private IfStatement parseIf() {
+        Expression condition = parseExpression();
         if (match(FAT_ARROW)) {
-            // N2: exactly one statement, possibly an entire nested construct.
-            parseStatement();
-            return;
+            return new IfStatement(condition, new Block(List.of(parseStatement())), null, true);
         }
         consume(KW_THEN, "KW_THEN or FAT_ARROW");
-        parseStatementSequence(true, KW_ELSE, KW_END);
-        if (match(KW_ELSE)) {
-            parseStatementSequence(true, KW_END);
-        }
+        Block thenBranch = parseStatementSequence(true, KW_ELSE, KW_END);
+        Else elseBranch = match(KW_ELSE) ? new Else(parseStatementSequence(true, KW_END)) : null;
         consume(KW_END, "KW_END");
+        return new IfStatement(condition, thenBranch, elseBranch, false);
     }
 
-    private void parseLoopBody() {
+    private Block parseLoopBody() {
         consume(KW_LOOP, "KW_LOOP");
-        parseStatementSequence(true, KW_END);
+        Block body = parseStatementSequence(true, KW_END);
         consume(KW_END, "KW_END");
+        return body;
     }
 
-    private void parseExpression() {
-        parseRelation();
+    private Expression parseExpression() {
+        Expression expression = parseRelation();
         while (match(KW_OR, KW_AND, KW_XOR)) {
-            parseRelation();
+            String operator = previous().getLexeme();
+            expression = new BinaryExpression(operator, expression, parseRelation());
         }
+        return expression;
     }
 
-    private void parseRelation() {
-        parseAdditive();
+    private Expression parseRelation() {
+        Expression expression = parseAdditive();
         if (match(LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, EQUAL, NOT_EQUAL)) {
-            parseAdditive();
+            String operator = previous().getLexeme();
+            expression = new BinaryExpression(operator, expression, parseAdditive());
             if (checkAny(LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, EQUAL, NOT_EQUAL)) {
                 throw error("at most one comparison operator per relation");
             }
         }
+        return expression;
     }
 
-    private void parseAdditive() {
-        parseMultiplicative();
+    private Expression parseAdditive() {
+        Expression expression = parseMultiplicative();
         while (match(PLUS, MINUS)) {
-            parseMultiplicative();
+            String operator = previous().getLexeme();
+            expression = new BinaryExpression(operator, expression, parseMultiplicative());
         }
+        return expression;
     }
 
-    private void parseMultiplicative() {
-        parseUnary();
+    private Expression parseMultiplicative() {
+        Expression expression = parseUnary();
         while (match(STAR, SLASH)) {
-            parseUnary();
+            String operator = previous().getLexeme();
+            expression = new BinaryExpression(operator, expression, parseUnary());
         }
+        return expression;
     }
 
-    private void parseUnary() {
+    private Expression parseUnary() {
         if (check(IDENT)) {
-            parseReference();
-            if (match(KW_IS)) {
-                parseTypeIndicator();
-            }
-        } else {
-            // N5: prefixes apply to Primary, not directly to Reference.
-            match(PLUS, MINUS, KW_NOT);
-            parsePrimary();
+            Reference reference = parseReference();
+            return match(KW_IS) ? new TypeCheckExpression(reference, parseTypeIndicator()) : reference;
         }
+        if (match(PLUS, MINUS, KW_NOT)) {
+            String operator = previous().getLexeme();
+            return new UnaryExpression(operator, parsePrimary());
+        }
+        return parsePrimary();
     }
 
-    private void parsePrimary() {
+    private Expression parsePrimary() {
         if (match(INTEGER, REAL, STRING, KW_TRUE, KW_FALSE, KW_NONE)) {
-            return;
+            Token token = previous();
+            switch (token.getType()) {
+                case INTEGER: return new IntegerLiteral((Long) token.getValue(), token.getLexeme());
+                case REAL: return new RealLiteral((Double) token.getValue(), token.getLexeme());
+                case STRING: return new StringLiteral((String) token.getValue(), token.getLexeme());
+                case KW_TRUE: return new BooleanLiteral(true, token.getLexeme());
+                case KW_FALSE: return new BooleanLiteral(false, token.getLexeme());
+                case KW_NONE: return new NoneLiteral();
+                default: throw new IllegalStateException("Unexpected literal token");
+            }
         }
         if (match(LPAREN)) {
-            parseExpression();
+            Expression expression = parseExpression();
             consume(RPAREN, "RPAREN");
-            return;
+            return expression;
         }
         if (check(KW_FUNC)) {
-            parseFunctionLiteral();
-            return;
+            return parseFunctionLiteral();
         }
         if (check(LBRACKET)) {
-            parseArray();
-            return;
+            return parseArray();
         }
         if (check(LBRACE)) {
-            parseTuple();
-            return;
+            return parseTuple();
         }
         throw error("expression (literal, function, collection or parenthesized expression)");
     }
 
-    private void parseFunctionLiteral() {
+    private FunctionLiteral parseFunctionLiteral() {
         consume(KW_FUNC, "KW_FUNC");
+        List<Identifier> parameters = new ArrayList<>();
         if (match(LPAREN)) {
-            consume(IDENT, "IDENT (nonempty parameter list)");
+            parameters.add(new Identifier(consume(IDENT, "IDENT (nonempty parameter list)").getLexeme()));
             while (match(COMMA)) {
-                consume(IDENT, "IDENT (parameter name)");
+                parameters.add(new Identifier(consume(IDENT, "IDENT (parameter name)").getLexeme()));
             }
             consume(RPAREN, "RPAREN");
         }
         if (match(KW_IS)) {
-            parseStatementSequence(true, KW_END);
+            Block body = parseStatementSequence(true, KW_END);
             consume(KW_END, "KW_END");
-        } else {
-            consume(FAT_ARROW, "KW_IS or FAT_ARROW (function body)");
-            parseExpression();
+            return new FunctionLiteral(new Parameters(parameters), body);
         }
+        consume(FAT_ARROW, "KW_IS or FAT_ARROW (function body)");
+        return new FunctionLiteral(new Parameters(parameters), parseExpression());
     }
 
-    private void parseArray() {
+    private ArrayLiteral parseArray() {
         consume(LBRACKET, "LBRACKET");
+        List<Expression> elements = new ArrayList<>();
         skipLineBreaks();
         if (match(RBRACKET)) {
-            return;
+            return new ArrayLiteral(elements);
         }
-        parseExpression();
+        elements.add(parseExpression());
         while (true) {
             skipLineBreaks();
             if (!match(COMMA)) {
                 break;
             }
             skipLineBreaks();
-            parseExpression();
+            elements.add(parseExpression());
         }
         consume(RBRACKET, "COMMA or RBRACKET");
+        return new ArrayLiteral(elements);
     }
 
-    private void parseTuple() {
+    private TupleLiteral parseTuple() {
         consume(LBRACE, "LBRACE");
         skipLineBreaks();
-        parseTupleElement();
+        List<TupleElement> elements = new ArrayList<>();
+        elements.add(parseTupleElement());
         while (true) {
             skipLineBreaks();
             if (!match(COMMA)) {
                 break;
             }
             skipLineBreaks();
-            parseTupleElement();
+            elements.add(parseTupleElement());
         }
         consume(RBRACE, "COMMA or RBRACE");
+        return new TupleLiteral(elements);
     }
 
-    private void parseTupleElement() {
+    private TupleElement parseTupleElement() {
+        Identifier name = null;
         if (check(IDENT) && lookahead(1).getType() == ASSIGN) {
-            advance();
+            name = new Identifier(advance().getLexeme());
             advance();
         }
-        parseExpression();
+        return new TupleElement(name, parseExpression());
     }
 
     private void skipLineBreaks() {
         while (match(NEWLINE)) {
-            // A8: only aggregate delimiters and commas permit layout newlines.
         }
     }
 
-    private void parseTypeIndicator() {
+    private TypeIndicator parseTypeIndicator() {
         if (match(KW_INT, KW_REAL, KW_BOOL, KW_STRING, KW_NONE, KW_FUNC)) {
-            return;
+            return TypeIndicator.valueOf(previous().getType().name().substring(3));
         }
         if (match(LBRACKET)) {
             consume(RBRACKET, "RBRACKET in array type indicator");
-        } else if (match(LBRACE)) {
-            consume(RBRACE, "RBRACE in tuple type indicator");
-        } else {
-            throw error("type indicator (int, real, bool, string, none, [], {}, func)");
+            return TypeIndicator.ARRAY;
         }
+        if (match(LBRACE)) {
+            consume(RBRACE, "RBRACE in tuple type indicator");
+            return TypeIndicator.TUPLE;
+        }
+        throw error("type indicator (int, real, bool, string, none, [], {}, func)");
     }
 
-    private void parseReference() {
-        consume(IDENT, "IDENT (reference root)");
+    private Reference parseReference() {
+        Reference reference = new Identifier(consume(IDENT, "IDENT (reference root)").getLexeme());
         while (true) {
             if (match(LBRACKET)) {
-                parseExpression();
+                Expression index = parseExpression();
                 consume(RBRACKET, "RBRACKET");
+                reference = new ArrayIndex(reference, index);
             } else if (match(LPAREN)) {
-                parseExpression();
+                List<Expression> arguments = new ArrayList<>();
+                arguments.add(parseExpression());
                 while (match(COMMA)) {
-                    parseExpression();
+                    arguments.add(parseExpression());
                 }
                 consume(RPAREN, "RPAREN");
+                reference = new FunctionCall(reference, arguments);
             } else if (match(DOT)) {
                 if (!match(IDENT, INTEGER)) {
                     throw error("IDENT or INTEGER after DOT");
                 }
+                Token field = previous();
+                reference = new TupleFieldAccess(reference, field.getType() == IDENT
+                        ? new TupleField(field.getLexeme()) : new TupleField((Long) field.getValue()));
             } else {
-                return;
+                return reference;
             }
         }
     }
 
     private void skipSeparators() {
         while (match(NEWLINE, SEMICOLON)) {
-            // Separator repetition is iterative, including blank lines.
+
         }
     }
 

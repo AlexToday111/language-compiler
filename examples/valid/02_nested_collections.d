@@ -1,5 +1,5 @@
-// Intended output values: 30, 1, 3, 60, 2.5, "beta", 9.
-// Not runtime-verified. Array/tuple positions start at one.
+
+
 var a := {
     {1, {10, 20, 30}},
     {2, {40, 50, 60}}

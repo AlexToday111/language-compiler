@@ -1,5 +1,5 @@
-NEWLINE	\n	-	1:60
-NEWLINE	\n	-	2:74
+NEWLINE	\n	-	1:1
+NEWLINE	\n	-	2:1
 KW_VAR	var	-	3:1
 IDENT	rowSum	-	3:5
 ASSIGN	:=	-	3:12
@@ -198,7 +198,7 @@ NEWLINE	\n	-	23:19
 KW_END	end	-	24:1
 NEWLINE	\n	-	24:4
 NEWLINE	\n	-	25:1
-NEWLINE	\n	-	26:73
+NEWLINE	\n	-	26:1
 KW_VAR	var	-	27:1
 IDENT	selectIncrement	-	27:5
 ASSIGN	:=	-	27:21

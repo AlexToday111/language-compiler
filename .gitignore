@@ -1,14 +1,11 @@
-# Java build outputs
 *.class
 *.jar
-!src/lexer/project-d-lexer.jar
 out/
 build/
 target/
 bin/
 .gradle/
 
-# IDE and editor settings
 .idea/
 .vscode/
 *.iml
@@ -19,7 +16,6 @@ bin/
 *.swo
 *~
 
-# Temporary files and operating system metadata
 *.tmp
 *.temp
 *.log

@@ -1,7 +1,7 @@
 package io.github.alextoday111.projectd.lexer;
 
 public enum TokenType {
-    // Keywords
+
     KW_VAR,
     KW_IF,
     KW_THEN,
@@ -28,37 +28,37 @@ public enum TokenType {
     KW_XOR,
     KW_NOT,
 
-    // Names and literals
+
     IDENT,
     INTEGER,
     REAL,
     STRING,
 
-    // Operators
-    ASSIGN,       // :=
-    FAT_ARROW,    // =>
-    RANGE,        // ..
-    PLUS,         // +
-    MINUS,        // -
-    STAR,         // *
-    SLASH,        // /
-    EQUAL,        // =
-    NOT_EQUAL,    // /=
-    LESS,         // <
-    LESS_EQUAL,   // <=
-    GREATER,      // >
-    GREATER_EQUAL,// >=
 
-    // Delimiters
-    LPAREN,       // (
-    RPAREN,       // )
-    LBRACKET,     // [
-    RBRACKET,     // ]
-    LBRACE,       // {
-    RBRACE,       // }
-    COMMA,        // ,
-    DOT,          // .
-    SEMICOLON,    // ;
+    ASSIGN,
+    FAT_ARROW,
+    RANGE,
+    PLUS,
+    MINUS,
+    STAR,
+    SLASH,
+    EQUAL,
+    NOT_EQUAL,
+    LESS,
+    LESS_EQUAL,
+    GREATER,
+    GREATER_EQUAL,
+
+
+    LPAREN,
+    RPAREN,
+    LBRACKET,
+    RBRACKET,
+    LBRACE,
+    RBRACE,
+    COMMA,
+    DOT,
+    SEMICOLON,
     NEWLINE,
 
     EOF

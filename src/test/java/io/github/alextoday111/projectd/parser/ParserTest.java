@@ -77,7 +77,7 @@ final class ParserTest {
                 "var a := [\n1\n,\n2\n]", "var a := [\n\n]",
                 "var t := {\na := 1\n,\nx + 10\n}",
                 "var t := {f := func(x) is return x end, g := func(x) => x + 1}",
-                // Syntax validation deliberately leaves these semantic issues alone.
+
                 "return unknown + 1; exit", "var x, x; x := true + 10",
                 "f(x) := value", "array[1.5] := value",
                 "var t := {a := 1, a := 2}"

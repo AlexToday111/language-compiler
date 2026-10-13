@@ -1,5 +1,5 @@
-// Intended output values: 25, 7, then 25, 16, 34, then 11.
-// Not runtime-verified. Ascending for ranges assume inclusive endpoints.
+
+
 var rowSum := func(row) => row[1] + row[2] + row[3]
 var transform := func(operation, array, config) => operation(array) + config.offset
 var applyTwice := func(callback, value) => callback(callback(value))
@@ -23,7 +23,7 @@ var processRows := func(callback, matrix, options) is
     return results
 end
 
-// Returns an existing function value; captured locals are not required.
+
 var selectIncrement := func(options) is
     return options.callbacks.increment
 end

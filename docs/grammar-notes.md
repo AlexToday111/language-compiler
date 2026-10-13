@@ -13,7 +13,7 @@ Secondary sources are [the team introduction](language-spec/krutaya_komanda%28in
 existing Java sources/tests. The teacher specification takes precedence.
 These PDFs were read in full; the teacher pages were also visually inspected.
 
-[grammar.ebnf](grammar.ebnf) is the syntax draft implemented by the syntax-only
+[grammar.ebnf](grammar.ebnf) is the syntax draft implemented by the recursive descent
 parser. The following assumptions remain provisional and require teacher
 confirmation. Unresolved source rules are preserved rather than silently
 expanded. Numeric tuple access now uses the explicit lexer convention below;
@@ -29,10 +29,20 @@ Lowercase names are defined syntax nonterminals. Uppercase names are lexical
 terminals defined by
 [TokenType.java](../src/main/java/io/github/alextoday111/projectd/lexer/TokenType.java).
 Lexical terminals are intentionally not expanded into character-level syntax
-productions. Their spelling/interface is listed in the grammar header:
+productions. Their spelling/interface is preserved here:
 `:=` is `ASSIGN`, `=` is `EQUAL`, `=>` is `FAT_ARROW`, and `..` is `RANGE`.
 `KW_*` names map to lowercase keywords. `INTEGER`, `REAL`, `STRING`, and `IDENT`
 carry lexemes/values; `NEWLINE`, `SEMICOLON`, and `EOF` delimit input.
+
+`+`, `-`, `*`, `/` map to `PLUS`, `MINUS`, `STAR`, `SLASH`;
+`/=`, `<`, `<=`, `>`, `>=` map to `NOT_EQUAL`, `LESS`, `LESS_EQUAL`,
+`GREATER`, `GREATER_EQUAL`. Parentheses, square brackets and braces use
+`LPAREN`/`RPAREN`, `LBRACKET`/`RBRACKET`, `LBRACE`/`RBRACE`;
+`,` is `COMMA`, `.` is `DOT`, and `;` is `SEMICOLON`.
+`INTEGER` is decimal digits; `REAL` is digits followed by a dot and digits,
+subject to the numeric tuple access convention below. `STRING` uses matching
+single or double quotes. All grammar comments have been removed from the EBNF;
+the provisional decisions and source references remain in this document.
 
 Comments begin with `//` in teacher examples (p. 3). The current lexer discards
 them and ordinary horizontal whitespace but emits each newline. It also
@@ -172,12 +182,12 @@ Confirm A1/A3/A4/A8 and the provisional short-if convention (N2) with the teache
 resolve unary operands (N5),
 zero-argument functions/call statements (N6), and empty tuples (N8). Settle
 assignability and the lexical gaps above. Obtain redistribution permission
-before adding the teacher PDF. The syntax-only parser implements the current
-draft; AST, semantic analysis, interpreter and runtime remain planned.
+before adding the teacher PDF. The parser implements the current draft and
+builds a typed AST; semantic analysis, interpreter and runtime remain planned.
 
 ## Syntax Parser Conventions
 
-The syntax-only parser enforces the EBNF draft without building trees or
+The parser enforces the EBNF draft and builds a typed AST without
 evaluating expressions. A1/A3/A4/A8 remain provisional. N5 prefixes still
 apply only to a primary: `-(x)` is allowed, `-x` is not. N6 keeps nonempty
 parentheses for parameters and call arguments; a function may omit its whole
@@ -211,12 +221,15 @@ existing reference grammar; later stages decide their semantics.
 
 ## Parser API, Diagnostics and Limits
 
-`new Parser(tokens).parse()` returns `void` on success and throws
+`new Parser(tokens).parse()` returns a `Program` AST on success and throws
 `ParseException` on the first error. The constructor snapshots the list and
 validates its token/EOF contract. Each `parse()` starts from the beginning.
-No lexer calls, token rewrites, trees, symbol tables or evaluation occur inside
-Parser. The separate `ParserMain` reads UTF-8 source and invokes Lexer first;
+No lexer calls, token rewrites, symbol tables or evaluation occur inside
+Parser. Nodes retain the grammatical hierarchy, order and left associativity
+of repeated binary operators. The separate `ParserMain` reads UTF-8 source and invokes Lexer first;
 the executable JAR still launches the original lexer CLI.
+`ParserMain --ast <file.d>` prints the complete AST as a UTF-8 tree after
+successful parsing; the original one-file mode keeps its success message.
 
 Exceptions expose the error kind, expected syntax, actual token, line and
 column. Syntax locations come directly from the offending lexer token,
@@ -226,6 +239,8 @@ There is no error recovery or multiple-error collection.
 
 Flat operator, suffix and statement sequences are iterative. Nested blocks,
 expressions and collections use Java recursion, so extreme nesting is limited
-by the JVM call stack. Parsing is not thread-safe. With no AST or evaluation,
-tests verify accepted syntax and tier boundaries, not computed associativity,
-short-circuit behavior or runtime results. Lexical gaps L1/L2/L3 are unchanged.
+by the JVM call stack. Parsing is not thread-safe. `AstPrinter` traverses the
+tree iteratively, including deep or long left-folded expressions. Tests verify
+accepted syntax, AST structure, operator tiers and left associativity;
+short-circuit behavior and runtime results remain unimplemented.
+Lexical gaps L1/L2/L3 are unchanged.

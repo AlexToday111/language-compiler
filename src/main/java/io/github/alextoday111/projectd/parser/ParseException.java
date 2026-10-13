@@ -2,7 +2,7 @@ package io.github.alextoday111.projectd.parser;
 
 import io.github.alextoday111.projectd.lexer.Token;
 
-/** A fail-fast syntax or token-stream error at the token where it was detected. */
+
 public final class ParseException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 

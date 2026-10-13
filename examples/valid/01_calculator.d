@@ -1,5 +1,5 @@
-// Intended output values: 25, 15, 100, 4. Not runtime-verified.
-// Functions are values; array indices start at one.
+
+
 var calculator := {
     operations := {
         add := func(a, b) => a + b,

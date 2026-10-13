@@ -1,6 +1,6 @@
-// Intended output values: 1, 2, 4, 5, 8. Not runtime-verified.
-// Assumption: ascending for ranges include both endpoints.
-// count is the known contiguous array size, at least two.
+
+
+
 var bubbleSort := func(values, count) is
     for pass in 1..count loop
         var swaps := 0

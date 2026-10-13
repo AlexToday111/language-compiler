@@ -4,7 +4,7 @@ Run from the repository root with JDK 11+ and Maven 3.6.3+:
 
 ```sh
 mvn clean verify
-bash src/lexer/run_demo.sh
+bash scripts/lexer-demo.sh
 ```
 
 The Bash script tokenizes all seven programs. For one file (Bash is optional):
@@ -75,5 +75,4 @@ expressions on one line or uses an explicit function body.
 - **Runtime validation:** unavailable until Interpreter is implemented. Every
   output above is an intended result, not an observed execution result.
 
-The old `src/lexer/project-d-lexer.jar` is a historical artifact and does not
-include the tuple-access fix. Use the Maven-built JAR for these examples.
+Use the Maven-built JAR in `target` for these examples.
