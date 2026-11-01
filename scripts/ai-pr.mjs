@@ -85,7 +85,6 @@ export async function run(env = process.env, request = fetch) {
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    // Do not log response bodies: they may contain code or sensitive details.
     if (!response.ok) throw new Error(`API request failed (HTTP ${response.status}).`);
     return response.json();
   }
@@ -93,7 +92,7 @@ export async function run(env = process.env, request = fetch) {
     json(`https://api.github.com${path}${suffix}`, env.GH_TOKEN, method, body);
   const pr = await github();
   if (!eligible(pr, env.GITHUB_REPOSITORY)) return;
-  mergeBody(pr.body, ''); // Validate markers before spending an API request.
+  mergeBody(pr.body, '');
   const files = await github('/files?per_page=100');
   const diff = diffContext(files, pr.changed_files);
   const response = await json('https://api.openai.com/v1/responses', env.OPENAI_API_KEY, 'POST', {
@@ -117,7 +116,6 @@ export async function run(env = process.env, request = fetch) {
     } },
   });
   const generated = parseResponse(response);
-  // Read again to preserve author edits and discard results for an obsolete head.
   const latest = await github();
   if (!eligible(latest, env.GITHUB_REPOSITORY) || latest.head.sha !== pr.head.sha) {
     console.log('PR changed during generation; skipping the update.');

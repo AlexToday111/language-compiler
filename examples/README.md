@@ -76,3 +76,39 @@ expressions on one line or uses an explicit function body.
   output above is an intended result, not an observed execution result.
 
 Use the Maven-built JAR in `target` for these examples.
+
+## Semantic Analysis and AST Transformations
+
+The new [semantic fixtures](semantic/) keep the seven original inputs unchanged.
+After `mvn clean verify`, run:
+
+```sh
+java -cp target/classes io.github.alextoday111.projectd.semantic.SemanticMain examples/semantic/valid.d
+```
+
+`undeclared.d`, `duplicate.d`, `invalid-return.d`, and `invalid-exit.d` each fail
+with the corresponding semantic diagnostic and exit code `1`. In `invalid-exit.d`,
+the enclosing loop does not extend into the function's control-flow context.
+
+Use `SemanticMain --compare examples/semantic/optimize.d` to display both trees.
+The committed [snapshot](semantic/optimize.ast.txt) shows `5 + 3 * 2` becoming
+`11`, the constant true branch becoming a `ScopedBlock`, real and Boolean folding,
+and unreachable prints disappearing after `return` and `exit`. These are AST
+transformations, not interpreter output. The PowerShell script
+`scripts/semantic-demo.ps1` runs every fixture and checks expected exit codes.
+
+## Presentation Scripts
+
+Build once with `mvn clean verify`, then run from the repository root:
+
+```powershell
+powershell -File scripts/semantic-demo.ps1 -Pause
+powershell -File scripts/calculator-demo.ps1 -Pause
+```
+
+The first script shows a trivial valid program, AST optimizations, and all four
+semantic errors. The second uses [a small calculator](presentation/calculator.d)
+with four arithmetic functions and constant expressions. Both print the source
+and label each stage. `-Pause` waits for Enter between stages; omit it for an
+unattended run. These demonstrations validate and transform ASTs; the compiler
+does not execute programs yet.

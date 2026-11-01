@@ -1,0 +1,70 @@
+Original AST:
+Program
+├── VariableDeclaration
+│   ├── Identifier: compute
+│   └── FunctionLiteral
+│       ├── Parameters
+│       │   └── Identifier: value
+│       └── Block
+│           ├── IfStatement
+│           │   ├── BinaryExpression: >
+│           │   │   ├── IntegerLiteral: 10
+│           │   │   └── IntegerLiteral: 3
+│           │   ├── Block
+│           │   │   ├── VariableDeclaration
+│           │   │   │   ├── Identifier: result
+│           │   │   │   └── BinaryExpression: +
+│           │   │   │       ├── IntegerLiteral: 5
+│           │   │   │       └── BinaryExpression: *
+│           │   │   │           ├── IntegerLiteral: 3
+│           │   │   │           └── IntegerLiteral: 2
+│           │   │   └── ReturnStatement
+│           │   │       └── Identifier: result
+│           │   └── Else
+│           │       └── Block
+│           │           └── PrintStatement
+│           │               └── Identifier: value
+│           └── PrintStatement
+│               └── StringLiteral: "unreachable"
+├── PrintStatement
+│   ├── FunctionCall
+│   │   ├── Identifier: compute
+│   │   └── IntegerLiteral: 1
+│   ├── BinaryExpression: +
+│   │   ├── RealLiteral: 1.5
+│   │   └── RealLiteral: 2.5
+│   └── UnaryExpression: not
+│       └── BooleanLiteral: true
+└── InfiniteLoop
+    └── Block
+        ├── PrintStatement
+        │   └── StringLiteral: "once"
+        ├── ExitStatement
+        └── PrintStatement
+            └── StringLiteral: "unreachable"
+Optimized AST:
+Program
+├── VariableDeclaration
+│   ├── Identifier: compute
+│   └── FunctionLiteral
+│       ├── Parameters
+│       │   └── Identifier: value
+│       └── Block
+│           └── ScopedBlock
+│               └── Block
+│                   ├── VariableDeclaration
+│                   │   ├── Identifier: result
+│                   │   └── IntegerLiteral: 11
+│                   └── ReturnStatement
+│                       └── Identifier: result
+├── PrintStatement
+│   ├── FunctionCall
+│   │   ├── Identifier: compute
+│   │   └── IntegerLiteral: 1
+│   ├── RealLiteral: 4.0
+│   └── BooleanLiteral: false
+└── InfiniteLoop
+    └── Block
+        ├── PrintStatement
+        │   └── StringLiteral: "once"
+        └── ExitStatement
