@@ -10,6 +10,13 @@ permissions:
   contents: read
 
 jobs:
+  ai-pr-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Test PR automation (Node.js supplied by the runner)
+        run: node --test scripts/ai-pr.test.mjs
+
   verify:
     runs-on: ubuntu-latest
     steps:

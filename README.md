@@ -99,6 +99,8 @@ tests, plus 37 AST and CLI checks. AST tests assert node types, values, child
 order, precedence, associativity, functions, collections, control flow,
 references, type tests, diagnostics and exact tree output.
 CI runs the same command on Temurin 17, compiling for Java 11.
+PRs include a testing checklist and AI usage disclosure. Optional AI title and
+summary generation is configured in [AI PR setup](docs/ai-pr.md).
 Six examples pass syntax validation. The original `02_calculator.d` remains
 Lexer-only: its newline after `=>` is rejected at **13:32**. Runtime results
 are unverified.
