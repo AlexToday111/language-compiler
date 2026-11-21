@@ -47,8 +47,7 @@ Bubble Sort takes the known contiguous array size (at least two); it assumes
 ascending inclusive ranges. Its inner index stays in `1..(count - 1)`, so
 `i + 1` never exceeds `count`. The higher-order range `1..3` also assumes
 inclusive endpoints. No array-length builtin or closure behavior is invented.
-Printed separators/formatting are unspecified; the table lists intended
-values, not a verified console transcript.
+The interpreter separates values in a single print statement with spaces.
 
 ## Original Lexer Inputs
 
@@ -72,8 +71,8 @@ expressions on one line or uses an explicit function body.
   `03_nested_values.d` pass. Integration tests explicitly verify rejection of
   the unchanged original `02_calculator.d` at `13:32` (`NEWLINE`). These are
   checks against the grammar draft and its provisional conventions.
-- **Runtime validation:** unavailable until Interpreter is implemented. Every
-  output above is an intended result, not an observed execution result.
+- **Runtime validation:** interpreter integration tests verify the expected output
+  of all six parser-valid examples with and without AST optimization.
 
 Use the Maven-built JAR in `target` for these examples.
 
@@ -110,5 +109,5 @@ The first script shows a trivial valid program, AST optimizations, and all four
 semantic errors. The second uses [a small calculator](presentation/calculator.d)
 with four arithmetic functions and constant expressions. Both print the source
 and label each stage. `-Pause` waits for Enter between stages; omit it for an
-unattended run. These demonstrations validate and transform ASTs; the compiler
-does not execute programs yet.
+unattended run. To execute a program, see the
+[interpreter CLI commands](../README.md#run-a-project-d-program).
